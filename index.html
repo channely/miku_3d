@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- saved from url=(0057)http://7xptga.com1.z0.glb.clouddn.com/index.v3.html?num=1 -->
-<html>
+<!-- saved from url=(0048)http://7xptga.com1.z0.glb.clouddn.com/index.html -->
+<html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>MMD</title>
@@ -20,19 +20,6 @@
             width: 100%;
             height: 100%;
         }
-
-        #battery {
-            width: 100%;
-            height: 8%;
-            bottom: 3%;
-            text-align: center;
-            position: absolute;
-            display: none;
-        }
-
-        #battery img {
-            width: 15%;
-        }
     </style>
     <style id="style-1-cropbar-clipper">/* Copyright 2014 Evernote Corporation. All rights reserved. */
     .en-markup-crop-options {
@@ -51,20 +38,140 @@
 </head>
 
 <body>
-<div id="battery" style="display: block;">
-    <img src="./battery.png">
-</div>
-<!-- TODO 控制音乐播放 -->
-<audio src="./bgm.mp3" id="miku-music" loop=""></audio>
+<audio src="./bgm.mp3" autoplay="autoplay"></audio>
 <script src="./three.js"></script>
 <script src="./MMDLoader.js"></script>
 <script src="./MorphAnimation2.js"></script>
 <script src="./CCDIKSolver.js"></script>
-<!--<script src="./main.v2.js"></script>-->
+<script>
 
+    var container;
+
+    var mesh, camera, scene, renderer;
+
+    var mouseX = 0, mouseY = 0;
+
+
+    var ikSolver;
+
+    var windowWidth = window.innerWidth;
+    var windowHeight = window.innerHeight;
+
+    var windowHalfX = window.innerWidth / 2;
+    var windowHalfY = window.innerHeight / 2;
+
+    var clock = new THREE.Clock();
+    var sc = 22;
+    init();
+    animate();
+
+
+    function init() {
+
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+        camera.position.z = 35;
+
+        // scene
+
+        scene = new THREE.Scene();
+
+        camera.lookAt(scene.position);
+
+
+        var ambient = new THREE.AmbientLight(0x444444);
+        scene.add(ambient);
+
+        var directionalLight = new THREE.DirectionalLight(0xffeedd);
+        directionalLight.position.set(-1, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        //加载mmd模型
+        var onProgress = function (xhr) {
+            if (xhr.lengthComputable) {
+                var percentComplete = xhr.loaded / xhr.total * 100;
+                console.log(Math.round(percentComplete, 2) + '% downloaded');
+            }
+        };
+
+        var onError = function (xhr) {
+        };
+
+        var loader = new THREE.MMDLoader();
+        loader.load('./miku_v2.pmd', './wavefile_v2.vmd', function (object) {
+
+            mesh = object;
+
+            mesh.position.y = -10;
+            scene.add(mesh);
+
+            var animation = new THREE.Animation(mesh, mesh.geometry.animation);
+            animation.play();
+
+            var morphAnimation = new THREE.MorphAnimation2(mesh, mesh.geometry.morphAnimation);
+            morphAnimation.play();
+
+            ikSolver = new THREE.CCDIKSolver(mesh);
+
+        }, onProgress, onError);
+
+
+        renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(windowWidth, windowHeight);
+        container.appendChild(renderer.domElement);
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+        window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize() {
+        windowWidth = window.innerWidth;
+        windowHeight = window.innerHeight;
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+        camera.aspect = windowWidth / windowHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(windowWidth, windowHeight);
+    }
+
+    function onDocumentMouseMove(event) {
+
+        mouseX = ( event.clientX - windowHalfX ) / 2;
+        mouseY = ( event.clientY - windowHalfY ) / 2;
+
+    }
+
+
+    function animate() {
+        requestAnimationFrame(animate);
+        render();
+    }
+
+    function render() {
+
+        if (mesh) {
+
+            THREE.AnimationHandler.update(clock.getDelta());
+
+            // this may should be in THREE.Animation
+            if (ikSolver) {
+
+                ikSolver.update();
+
+            }
+
+        }
+        camera.updateProjectionMatrix();
+        renderer.render(scene, camera);
+    }
+
+</script>
 <div>
-    <canvas width="2733" height="2046" style="width: 911px; height: 682px;"></canvas>
+    <canvas width="1242" height="2208" style="width: 414px; height: 736px;"></canvas>
 </div>
+
 
 </body>
 </html>
